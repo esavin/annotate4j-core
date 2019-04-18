@@ -1,4 +1,4 @@
-# jdigger-core
+# annotate4j-core
 The small library to process binary files annotated with comact set of annotations.
 
 The main ideas: it is possible to describe most of binary formats with the limited number of format independent annotations and  
