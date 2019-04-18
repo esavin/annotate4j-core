@@ -1,9 +1,6 @@
 package annotate4j.core.bin.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * @author Eugene Savin
@@ -11,7 +8,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
+@Repeatable(InjectContainer.class)
 public @interface Inject {
     String fieldName();
-
 }
