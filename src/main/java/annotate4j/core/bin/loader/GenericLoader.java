@@ -3,6 +3,7 @@ package annotate4j.core.bin.loader;
 import annotate4j.core.Loader;
 import annotate4j.core.annotation.LittleEndian;
 import annotate4j.core.bin.annotation.ContainerSize;
+import annotate4j.core.bin.annotation.Terminator;
 import annotate4j.core.bin.exceptions.*;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.ClassSwitcher;
@@ -33,7 +34,6 @@ public abstract class GenericLoader implements Loader {
     protected long level = new Long(0);
     protected boolean isNeedInjection = false;
     protected ClassSwitcher cs = new ClassSwitcherImpl();
-
 
 
     public long getOffset() {
@@ -70,8 +70,53 @@ public abstract class GenericLoader implements Loader {
             return readList(f);
         } else if (f.getType().isArray()) {
             return readArray(f);
+        } else if (f.getType().equals(String.class)) {
+            return readString(f);
         }
         return false;
+    }
+
+    protected boolean readString(Field f) throws IllegalAccessException, InvocationTargetException,
+            FieldReadException, IOException {
+        String result = null;
+        try {
+            Terminator t = AnnotationHelper.getAnnotation(instance.getClass(), f, Terminator.class);
+            if (t != null) {
+                byte terminator = t.value();
+                byte b;
+                StringBuilder builder = new StringBuilder();
+                while ((b = readByte()) != terminator) {
+                    builder.append((char)b);
+                }
+                result = builder.toString();
+            }
+        } catch (AnnotationNotSpecifiedException e) {
+            //skip it
+        }
+
+        if (result == null) {
+            long containerSize = getContainerSize(f);
+
+            if (containerSize != 0) {
+                Object obj = readByteArray(containerSize);
+                result = new String((byte[]) obj);
+            }
+        }
+
+
+        if (result != null) {
+            try {
+                Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
+                m.invoke(instance, result);
+                return true;
+            } catch (NoSuchMethodException e) {
+                throw new FieldReadException("Can not receive setter for " + instance.getClass().getName() +
+                        " class, field " + f.getName());
+            }
+        }
+
+        return false;
+
     }
 
     protected boolean readArray(Field f) throws IllegalAccessException,
@@ -154,7 +199,7 @@ public abstract class GenericLoader implements Loader {
         Object obj;
         try {
             obj = clazz.newInstance();
-            if (isNeedInjection){
+            if (isNeedInjection) {
                 try {
                     InputStreamLoader.injectVariable(obj, injectedVariable);
                 } catch (ResolveException e) {
@@ -240,7 +285,7 @@ public abstract class GenericLoader implements Loader {
 
             if (fieldType.equals(short.class) || fieldType.equals(Short.class)) {
                 short s = readShort();
-                if (!bigEndian){
+                if (!bigEndian) {
                     s = Short.reverseBytes(s);
                 }
                 return s;
@@ -266,7 +311,7 @@ public abstract class GenericLoader implements Loader {
         try {
             Method getter = ReflectionHelper.getGetter(instance.getClass(), f.getName());
             Object obj = getter.invoke(instance);
-            if (obj instanceof List){
+            if (obj instanceof List) {
                 list = (List) obj;
             }
         } catch (NoSuchMethodException e) {
@@ -282,7 +327,7 @@ public abstract class GenericLoader implements Loader {
                 list.add(o);
                 l++;
             }
-        } catch (FieldReadException fre){
+        } catch (FieldReadException fre) {
             if (fre.getCause() instanceof EOFException && Long.MAX_VALUE == containerSize) {
                 if (fre.getPartialCreatedInstance() != null) {
                     list.add(fre.getPartialCreatedInstance());
@@ -311,7 +356,7 @@ public abstract class GenericLoader implements Loader {
                 clazz.equals(byte.class) || clazz.equals(Byte.class) ||
                 clazz.equals(long.class) || clazz.equals(Long.class)) {
             boolean bigEndian = true;
-            if (f.getDeclaredAnnotation(LittleEndian.class) != null){
+            if (f.getDeclaredAnnotation(LittleEndian.class) != null) {
                 bigEndian = false;
             }
             o = readNumber(clazz, bigEndian);
