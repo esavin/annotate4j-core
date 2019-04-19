@@ -2,6 +2,7 @@ package annotate4j.core.bin.loader;
 
 import annotate4j.core.annotation.LittleEndian;
 import annotate4j.core.bin.annotation.Inject;
+import annotate4j.core.bin.annotation.InjectContainer;
 import annotate4j.core.bin.exceptions.FieldReadException;
 import annotate4j.core.bin.exceptions.NotSupportedTypeException;
 import annotate4j.core.bin.exceptions.ResolveException;
@@ -65,11 +66,6 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
             }
             if (!b) {
                 b = readContainer(f);
-                if (b){
-                    if (f.getDeclaredAnnotation(Inject.class) != null){
-                        System.out.println();
-                    }
-                }
             }
             if (!b) {
                 b = readClassInstance(f);
@@ -114,36 +110,48 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                     log.fine("there are : " + offset + " bytes before " + offsetFieldName);
                 }
             }
-            Inject inject = AnnotationHelper.getAnnotationOrNull(instance.getClass(), f, Inject.class);
-            if (inject != null) {
-                try {
-                    Object obj = null;
-                    if (injectedVariable != null) {
-                        obj = injectedVariable.get(inject.fieldName());
+
+            isNeedInjection = false;
+            List<Inject> injects = new ArrayList<>();
+
+            Inject singleInject = AnnotationHelper.getAnnotationOrNull(instance.getClass(), f, Inject.class);
+            InjectContainer injectContainer = AnnotationHelper.getAnnotationOrNull(instance.getClass(), f, InjectContainer.class);
+            if (singleInject != null){
+                injects.add(singleInject);
+            }
+            if (injectContainer != null){
+                Inject[] injectArray = injectContainer.value();
+                injects.addAll(Arrays.asList(injectArray));
+            }
+            for (Inject inject: injects ) {
+                if (inject != null) {
+                    try {
+                        Object obj = null;
+                        if (injectedVariable != null) {
+                            obj = injectedVariable.get(inject.fieldName());
+                        }
+                        if (obj == null) {
+                            Method m = ReflectionHelper.getGetter(instance.getClass(), inject.fieldName());
+                            obj = m.invoke(instance);
+                        }
+                        if (obj == null) {
+                            throw new FieldReadException("Can not receive field " + inject.fieldName() + " into class " + instance.getClass());
+                        }
+                        if (injectedVariable == null) {
+                            injectedVariable = new HashMap<String, Object>();
+                        }
+                        injectedVariable.put(inject.fieldName(), obj);
+                        isNeedInjection = true;
+                    } catch (NoSuchMethodException e) {
+                        throw new FieldReadException("Can not found getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
+                    } catch (IllegalAccessException e1) {
+                        throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
+                    } catch (IllegalArgumentException e2) {
+                        throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
+                    } catch (InvocationTargetException e3) {
+                        throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
                     }
-                    if (obj == null) {
-                        Method m = ReflectionHelper.getGetter(instance.getClass(), inject.fieldName());
-                        obj = m.invoke(instance);
-                    }
-                    if (obj == null) {
-                        throw new FieldReadException("Can not receive field " + inject.fieldName() + " into class " + instance.getClass());
-                    }
-                    if (injectedVariable == null) {
-                        injectedVariable = new HashMap<String, Object>();
-                    }
-                    injectedVariable.put(inject.fieldName(), obj);
-                    isNeedInjection = true;
-                } catch (NoSuchMethodException e) {
-                    throw new FieldReadException("Can not found getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                } catch (IllegalAccessException e1) {
-                    throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                } catch (IllegalArgumentException e2) {
-                    throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                } catch (InvocationTargetException e3) {
-                    throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
                 }
-            } else {
-                isNeedInjection = false;
             }
             try {
                 readField(f);
@@ -229,7 +237,10 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 }
 
             } catch (NoSuchMethodException e) {
-                throw new ResolveException("can not inject ..."); // TODO define exception
+                // skip it: the target class does not contain setter method for variable that should be injected
+                // it is responsibility of the target class to implement it
+                // the source of injection just declare that it ready to provide the injected value
+                //throw new ResolveException("can not inject ..."); // TODO define exception
             } catch (IllegalAccessException e) {
                 throw new ResolveException("can not invoke setter ...", e); // TODO define exception
             } catch (InvocationTargetException e) {
