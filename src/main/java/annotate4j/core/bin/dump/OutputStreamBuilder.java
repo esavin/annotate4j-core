@@ -3,12 +3,16 @@ package annotate4j.core.bin.dump;
 import annotate4j.core.DumpBuilder;
 import annotate4j.core.annotation.FieldPostfix;
 import annotate4j.core.annotation.FieldPrefix;
+import annotate4j.core.annotation.LittleEndian;
 import annotate4j.core.bin.dump.exceptions.FieldWriteException;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.FieldsBuilder;
 import annotate4j.core.bin.utils.ReflectionHelper;
 
-import java.io.*;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -111,12 +115,16 @@ public class OutputStreamBuilder implements DumpBuilder, Cloneable {
     private boolean writeNumber(Field f) throws NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, IOException {
         Class fieldType = f.getType();
+        boolean bigEndian = true;
+        if (f.getDeclaredAnnotation(LittleEndian.class) != null) {
+            bigEndian = false;
+        }
         if (fieldType.equals(int.class) || fieldType.equals(Integer.class)) {
-            writeInt(f);
+            writeInt(f, bigEndian);
             return true;
         }
         if (fieldType.equals(short.class) || fieldType.equals(Short.class)) {
-            writeShort(f);
+            writeShort(f, bigEndian);
             return true;
         }
 
@@ -164,19 +172,25 @@ public class OutputStreamBuilder implements DumpBuilder, Cloneable {
 
     }
 
-    private void writeShort(Field f) throws NoSuchMethodException,
+    private void writeShort(Field f, boolean bigEndian) throws NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, IOException {
         Method m = ReflectionHelper.getGetter(instance.getClass(), f);
         Short b = (Short) m.invoke(instance);
+        if (!bigEndian) {
+            b = Short.reverseBytes(b);
+        }
         out.writeShort(b.intValue());
 
 
     }
 
-    private void writeInt(Field f) throws NoSuchMethodException,
+    private void writeInt(Field f, boolean bigEndian) throws NoSuchMethodException,
             IllegalAccessException, InvocationTargetException, IOException {
         Method m = ReflectionHelper.getGetter(instance.getClass(), f);
         Integer i = (Integer) m.invoke(instance);
+        if (!bigEndian) {
+            i = Integer.reverseBytes(i);
+        }
         out.writeInt(i.intValue());
     }
 
