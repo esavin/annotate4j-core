@@ -1,10 +1,10 @@
 package annotate4j.core.tests.validation.data.hasinheritor;
 
-import annotate4j.core.annotation.FieldOrder;
+import annotate4j.core.HasInheritor;
+import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.exceptions.InheritorNotFoundException;
 import annotate4j.core.tests.utils.CauseException;
 import annotate4j.core.validation.exceptions.InheritanceException;
-import annotate4j.core.HasInheritor;
 
 import java.util.ArrayList;
 import java.util.Collection;

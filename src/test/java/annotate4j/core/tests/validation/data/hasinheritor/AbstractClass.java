@@ -1,9 +1,9 @@
 package annotate4j.core.tests.validation.data.hasinheritor;
 
-import annotate4j.core.annotation.FieldOrder;
+import annotate4j.core.HasInheritor;
+import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.tests.utils.CauseException;
 import annotate4j.core.validation.exceptions.ValidationInstantiationException;
-import annotate4j.core.HasInheritor;
 
 /**
  * @author Eugene Savin

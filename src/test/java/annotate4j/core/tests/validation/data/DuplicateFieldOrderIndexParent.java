@@ -1,6 +1,6 @@
 package annotate4j.core.tests.validation.data;
 
-import annotate4j.core.annotation.FieldOrder;
+import annotate4j.core.bin.annotation.FieldOrder;
 
 /**
  * @author Eugene Savin

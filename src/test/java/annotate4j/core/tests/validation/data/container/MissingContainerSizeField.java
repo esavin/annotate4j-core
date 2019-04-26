@@ -1,7 +1,7 @@
 package annotate4j.core.tests.validation.data.container;
 
-import annotate4j.core.annotation.FieldOrder;
 import annotate4j.core.bin.annotation.ContainerSize;
+import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.tests.utils.CauseException;
 import annotate4j.core.validation.exceptions.MissingContainerSizeFieldException;
 
