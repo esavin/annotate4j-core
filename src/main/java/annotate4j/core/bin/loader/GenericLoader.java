@@ -3,7 +3,7 @@ package annotate4j.core.bin.loader;
 import annotate4j.core.Loader;
 import annotate4j.core.bin.annotation.ContainerSize;
 import annotate4j.core.bin.annotation.LittleEndian;
-import annotate4j.core.bin.annotation.Terminator;
+import annotate4j.core.bin.annotation.StringTerminator;
 import annotate4j.core.bin.exceptions.*;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.ClassSwitcher;
@@ -79,7 +79,7 @@ public abstract class GenericLoader implements Loader {
             FieldReadException, IOException {
         String result = null;
         try {
-            Terminator t = AnnotationHelper.getAnnotation(instance.getClass(), f, Terminator.class);
+            StringTerminator t = AnnotationHelper.getAnnotation(instance.getClass(), f, StringTerminator.class);
             if (t != null) {
                 byte terminator = t.value();
                 byte b;
