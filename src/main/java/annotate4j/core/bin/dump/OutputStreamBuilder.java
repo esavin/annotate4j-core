@@ -132,10 +132,10 @@ public class OutputStreamBuilder implements DumpBuilder, Cloneable {
             writeByte(f);
             return true;
         }
-        /*if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
-            writeLong(f);
+        if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
+            writeLong(f, bigEndian);
             return true;
-        }*/
+        }
         return false;
     }
 
@@ -180,8 +180,16 @@ public class OutputStreamBuilder implements DumpBuilder, Cloneable {
             b = Short.reverseBytes(b);
         }
         out.writeShort(b.intValue());
+    }
 
-
+    private void writeLong(Field f, boolean bigEndian) throws NoSuchMethodException,
+            IllegalAccessException, InvocationTargetException, IOException {
+        Method m = ReflectionHelper.getGetter(instance.getClass(), f);
+        Long l = (Long) m.invoke(instance);
+        if (!bigEndian) {
+            l = Long.reverseBytes(l);
+        }
+        out.writeLong(l);
     }
 
     private void writeInt(Field f, boolean bigEndian) throws NoSuchMethodException,
