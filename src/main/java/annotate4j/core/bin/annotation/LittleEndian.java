@@ -1,4 +1,4 @@
-package annotate4j.core.annotation;
+package annotate4j.core.bin.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,11 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author Eugene Savin
+ * the annotation to identify the Little Endian byte order for the short, int and long variables
  */
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD, ElementType.METHOD})
-public @interface OneOf {
-    String[] values();
+@Target({ElementType.FIELD})
+public @interface LittleEndian {
 }

@@ -1,8 +1,8 @@
 package annotate4j.core.bin.loader;
 
-import annotate4j.core.annotation.LittleEndian;
 import annotate4j.core.bin.annotation.Inject;
 import annotate4j.core.bin.annotation.InjectContainer;
+import annotate4j.core.bin.annotation.LittleEndian;
 import annotate4j.core.bin.exceptions.FieldReadException;
 import annotate4j.core.bin.exceptions.NotSupportedTypeException;
 import annotate4j.core.bin.exceptions.ResolveException;

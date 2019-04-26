@@ -23,10 +23,10 @@ public @interface ContainerSize {
      *
      * @return field name
      */
-    public String fieldName() default "";
+    String fieldName() default "";
 
-    public long corrector() default 0;
+    long corrector() default 0;
 
-    public long value() default -1;
+    long value() default -1;
 
 }

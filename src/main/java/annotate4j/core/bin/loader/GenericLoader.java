@@ -1,15 +1,14 @@
 package annotate4j.core.bin.loader;
 
 import annotate4j.core.Loader;
-import annotate4j.core.annotation.LittleEndian;
 import annotate4j.core.bin.annotation.ContainerSize;
+import annotate4j.core.bin.annotation.LittleEndian;
 import annotate4j.core.bin.annotation.Terminator;
 import annotate4j.core.bin.exceptions.*;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.ClassSwitcher;
 import annotate4j.core.bin.utils.ClassSwitcherImpl;
 import annotate4j.core.bin.utils.ReflectionHelper;
-
 
 import java.io.DataInput;
 import java.io.EOFException;

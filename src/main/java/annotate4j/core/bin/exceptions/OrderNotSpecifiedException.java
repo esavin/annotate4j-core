@@ -1,6 +1,6 @@
 package annotate4j.core.bin.exceptions;
 
-import annotate4j.core.annotation.FieldOrder;
+import annotate4j.core.bin.annotation.FieldOrder;
 
 /**
  * @author Eugene Savin

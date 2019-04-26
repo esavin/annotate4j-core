@@ -1,7 +1,7 @@
 package annotate4j.core.validation;
 
-import annotate4j.core.annotation.FieldOrder;
 import annotate4j.core.bin.annotation.ContainerSize;
+import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.FieldsBuilder;
 import annotate4j.core.validation.exceptions.*;

@@ -1,4 +1,4 @@
-package annotate4j.core.annotation;
+package annotate4j.core.bin.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -18,5 +18,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
 public @interface FieldOrder {
-    public int index();
+    int index();
 }

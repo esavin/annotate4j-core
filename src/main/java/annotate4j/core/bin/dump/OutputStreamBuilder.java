@@ -3,7 +3,7 @@ package annotate4j.core.bin.dump;
 import annotate4j.core.DumpBuilder;
 import annotate4j.core.annotation.FieldPostfix;
 import annotate4j.core.annotation.FieldPrefix;
-import annotate4j.core.annotation.LittleEndian;
+import annotate4j.core.bin.annotation.LittleEndian;
 import annotate4j.core.bin.dump.exceptions.FieldWriteException;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.FieldsBuilder;

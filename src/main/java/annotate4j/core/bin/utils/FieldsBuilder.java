@@ -1,6 +1,6 @@
 package annotate4j.core.bin.utils;
 
-import annotate4j.core.annotation.FieldOrder;
+import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.bin.exceptions.OrderNotSpecifiedException;
 
 import java.lang.reflect.Field;
