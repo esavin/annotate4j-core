@@ -27,25 +27,10 @@ public abstract class GenericLoader implements Loader {
     protected Object instance = null;
     protected Object parent = null;
     protected Map<String, Object> injectedVariable;
-    protected String offsetFieldName = "";
-    protected String offsetClassName = "";
-    protected long offset = new Long(0);
-    protected long level = new Long(0);
     protected boolean isNeedInjection = false;
     protected ClassSwitcher cs = new ClassSwitcherImpl();
 
 
-    public long getOffset() {
-        return offset;
-    }
-
-    public void setOffsetClassName(String offsetClassName) {
-        this.offsetClassName = offsetClassName;
-    }
-
-    public void setOffsetFieldName(String offsetFieldName) {
-        this.offsetFieldName = offsetFieldName;
-    }
 
     protected boolean readClassInstance(Field f) throws FieldReadException,
             IllegalAccessException, InvocationTargetException {
@@ -156,7 +141,6 @@ public abstract class GenericLoader implements Loader {
         byte[] bArray = new byte[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readUnsignedByte();
-            offset++;
             bArray[l] = (byte) i;
         }
         return bArray;
@@ -166,7 +150,6 @@ public abstract class GenericLoader implements Loader {
         long[] lArray = new long[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             long i = in.readLong();
-            offset++;
             lArray[l] = i;
         }
         return lArray;
@@ -176,7 +159,6 @@ public abstract class GenericLoader implements Loader {
         short[] sArray = new short[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readUnsignedShort();
-            offset += 2;
 
             sArray[l] = (short) i;
         }
@@ -187,7 +169,6 @@ public abstract class GenericLoader implements Loader {
         int[] iArray = new int[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readInt();
-            offset += 4;
 
             iArray[l] = i;
         }
@@ -219,7 +200,6 @@ public abstract class GenericLoader implements Loader {
         }
 
         Object ret = loader.load();
-        offset = loader.getOffset();
         return ret;
 
     }
@@ -367,25 +347,21 @@ public abstract class GenericLoader implements Loader {
     }
 
     protected Long readLong() throws IOException {
-        offset += 8;
         return Long.valueOf(in.readLong());
 
     }
 
     protected Integer readInt() throws IOException {
-        offset += 4;
         return Integer.valueOf(in.readInt());
 
     }
 
     protected Short readShort() throws IOException {
-        offset += 2;
         return Short.valueOf((short) in.readUnsignedShort());
 
     }
 
     protected Byte readByte() throws IOException {
-        offset++;
         return Byte.valueOf((byte) in.readUnsignedByte());
 
     }
@@ -400,9 +376,9 @@ public abstract class GenericLoader implements Loader {
     protected Object clone() throws CloneNotSupportedException {
         InputStreamLoader loader;
         if (isNeedInjection) {
-            loader = new InputStreamLoader(in, offset, level, offsetClassName, offsetFieldName, injectedVariable);
+            loader = new InputStreamLoader(in, injectedVariable);
         } else {
-            loader = new InputStreamLoader(in, offset, level, offsetClassName, offsetFieldName, null);
+            loader = new InputStreamLoader(in, null);
         }
         loader.setClassSwitcher(cs);
 

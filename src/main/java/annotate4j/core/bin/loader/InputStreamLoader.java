@@ -14,7 +14,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -29,14 +28,9 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
         this.instance = instance;
     }
 
-    protected InputStreamLoader(DataInput in, long offset, long level, String offsetClassName,
-                              String offsetFieldName, Map<String, Object> injectedVariable) {
+    protected InputStreamLoader(DataInput in, Map<String, Object> injectedVariable) {
         this.in = in;
-        this.offset = offset;
         this.parent = new Object();
-        this.level = level;
-        this.offsetClassName = offsetClassName;
-        this.offsetFieldName = offsetFieldName;
         this.injectedVariable = injectedVariable;
     }
 
@@ -86,30 +80,11 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
 
 
     public Object load() throws FieldReadException {
-        level++;
-        if (log.isLoggable(Level.FINE)) {
-            StringBuffer sb = new StringBuffer();
-            for (int k = 0; k < level; k++) {
-                sb.append("    ");
-            }
 
-            sb.append("load ").append(instance.getClass().getName()).
-                    append(" class, parent class: ").append(parent.getClass().getName());
-            log.fine(sb.toString());
-            if (instance.getClass().getName().equals(offsetClassName)) {
-                log.fine("there are " + offset + " bytes before " + offsetClassName);
-            }
-
-        }
         Field[] fields = FieldsBuilder.buildFields(instance, parent);
 
         for (int i = 0; i < fields.length; i++) {
             Field f = fields[i];
-            if (log.isLoggable(Level.FINE)) {
-                if (f.getName().equals(offsetFieldName)) {
-                    log.fine("there are : " + offset + " bytes before " + offsetFieldName);
-                }
-            }
 
             isNeedInjection = false;
             List<Inject> injects = new ArrayList<>();
@@ -166,25 +141,6 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 }
                 throw fre;
             }
-            if (log.isLoggable(Level.FINE)) {
-                Object value = new String();
-                try {
-                    Method m = ReflectionHelper.getGetter(instance.getClass(), f);
-                    value = m.invoke(instance);
-                } catch (Exception e) {
-                    //
-                }
-
-
-                StringBuffer sb = new StringBuffer();
-                for (int k = 0; k < level; k++) {
-                    sb.append("    ");
-                }
-                sb.append("  ").append(f.getType().getName()).append(" ").append(f.getName()).
-                        append(" = `").append(value).append("`");
-                log.fine(sb.toString());
-
-            }
         }
 
         if (cs == null) {
@@ -211,11 +167,8 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
             CastHelper castHelper = new CastHelperImpl();
             castHelper.cast(instance, inheritor);
             inheritor = loader.load(inheritor, instance);
-            offset = loader.getOffset();
-            level--;
             return inheritor;
         }
-        level--;
         return instance;
     }
 
@@ -247,10 +200,6 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 throw new ResolveException("can not invoke setter ...", e); // TODO define exception
             }
         }
-    }
-
-    public Logger getLog() {
-        return log;
     }
 
 }
