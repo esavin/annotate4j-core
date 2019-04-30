@@ -28,14 +28,14 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
         this.instance = instance;
     }
 
-    protected InputStreamLoader(DataInput in, Map<String, Object> injectedVariable) {
+    InputStreamLoader(DataInput in, Map<String, Object> injectedVariable) {
         this.in = in;
         this.parent = new Object();
         this.injectedVariable = injectedVariable;
     }
 
 
-    protected void readField(Field f) throws FieldReadException {
+    private void readField(Field f) throws FieldReadException {
         Class fieldType = f.getType();
         Method m;
         try {
@@ -69,10 +69,8 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
             }
         } catch (IOException e) {
             throw new FieldReadException("Can not read " + fieldType.getName() + " from DataInput", e);
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new FieldReadException("Can not invoke method " + m.getName(), e);
-        } catch (InvocationTargetException e1) {
-            throw new FieldReadException("Can not invoke method " + m.getName(), e1);
         }
 
 
@@ -119,11 +117,7 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                         isNeedInjection = true;
                     } catch (NoSuchMethodException e) {
                         throw new FieldReadException("Can not found getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                    } catch (IllegalAccessException e1) {
-                        throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                    } catch (IllegalArgumentException e2) {
-                        throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
-                    } catch (InvocationTargetException e3) {
+                    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
                         throw new FieldReadException("Can not invoke getter for field " + inject.fieldName() + " in class " + instance.getClass().getName());
                     }
                 }
@@ -174,9 +168,7 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
 
     public static void injectVariable(Object injectable, Map<String, Object> injectedVariable) throws ResolveException {
         Set<String> keys = injectedVariable.keySet();
-        Iterator<String> iter = keys.iterator();
-        while (iter.hasNext()) {
-            String key = iter.next();
+        for (String key : keys) {
             Object obj = injectedVariable.get(key);
             Method m;
             try {
@@ -194,9 +186,7 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 // it is responsibility of the target class to implement it
                 // the source of injection just declare that it ready to provide the injected value
                 //throw new ResolveException("can not inject ..."); // TODO define exception
-            } catch (IllegalAccessException e) {
-                throw new ResolveException("can not invoke setter ...", e); // TODO define exception
-            } catch (InvocationTargetException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new ResolveException("can not invoke setter ...", e); // TODO define exception
             }
         }

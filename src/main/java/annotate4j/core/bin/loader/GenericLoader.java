@@ -25,14 +25,13 @@ public abstract class GenericLoader implements Loader {
 
     protected DataInput in;
     protected Object instance = null;
-    protected Object parent = null;
-    protected Map<String, Object> injectedVariable;
-    protected boolean isNeedInjection = false;
-    protected ClassSwitcher cs = new ClassSwitcherImpl();
+    Object parent = null;
+    Map<String, Object> injectedVariable;
+    boolean isNeedInjection = false;
+    ClassSwitcher cs = new ClassSwitcherImpl();
 
 
-
-    protected boolean readClassInstance(Field f) throws FieldReadException,
+    boolean readClassInstance(Field f) throws FieldReadException,
             IllegalAccessException, InvocationTargetException {
         Object o = readClassInstance(f.getType());
         Method m;
@@ -47,7 +46,7 @@ public abstract class GenericLoader implements Loader {
     }
 
 
-    protected boolean readContainer(Field f) throws IOException,
+    boolean readContainer(Field f) throws IOException,
             IllegalAccessException, InvocationTargetException,
             FieldReadException {
         if (f.getType().equals(List.class)) {
@@ -60,7 +59,7 @@ public abstract class GenericLoader implements Loader {
         return false;
     }
 
-    protected boolean readString(Field f) throws IllegalAccessException, InvocationTargetException,
+    private boolean readString(Field f) throws IllegalAccessException, InvocationTargetException,
             FieldReadException, IOException {
         String result = null;
         try {
@@ -103,7 +102,7 @@ public abstract class GenericLoader implements Loader {
 
     }
 
-    protected boolean readArray(Field f) throws IllegalAccessException,
+    private boolean readArray(Field f) throws IllegalAccessException,
             InvocationTargetException,
             FieldReadException, IOException {
 
@@ -137,7 +136,7 @@ public abstract class GenericLoader implements Loader {
         return true;
     }
 
-    protected byte[] readByteArray(long containerSize) throws IOException {
+    private byte[] readByteArray(long containerSize) throws IOException {
         byte[] bArray = new byte[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readUnsignedByte();
@@ -146,7 +145,7 @@ public abstract class GenericLoader implements Loader {
         return bArray;
     }
 
-    protected long[] readLongArray(long containerSize) throws IOException {
+    private long[] readLongArray(long containerSize) throws IOException {
         long[] lArray = new long[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             long i = in.readLong();
@@ -155,7 +154,7 @@ public abstract class GenericLoader implements Loader {
         return lArray;
     }
 
-    protected short[] readShortArray(long containerSize) throws IOException {
+    private short[] readShortArray(long containerSize) throws IOException {
         short[] sArray = new short[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readUnsignedShort();
@@ -165,7 +164,7 @@ public abstract class GenericLoader implements Loader {
         return sArray;
     }
 
-    protected int[] readIntArray(long containerSize) throws IOException {
+    private int[] readIntArray(long containerSize) throws IOException {
         int[] iArray = new int[(int) containerSize];
         for (int l = 0; l < containerSize; l++) {
             int i = in.readInt();
@@ -175,7 +174,7 @@ public abstract class GenericLoader implements Loader {
         return iArray;
     }
 
-    protected Object readClassInstance(Class clazz) throws FieldReadException, IllegalAccessException {
+    private Object readClassInstance(Class clazz) throws FieldReadException, IllegalAccessException {
         Object obj;
         try {
             obj = clazz.newInstance();
@@ -199,9 +198,7 @@ public abstract class GenericLoader implements Loader {
             throw new FieldReadException("Can not call clone() method");
         }
 
-        Object ret = loader.load();
-        return ret;
-
+        return loader.load();
     }
 
     protected long getContainerSize(Field f) throws
@@ -244,7 +241,7 @@ public abstract class GenericLoader implements Loader {
     }
 
 
-    protected Number readNumber(Class fieldType, boolean bigEndian) throws FieldReadException {
+    Number readNumber(Class fieldType, boolean bigEndian) throws FieldReadException {
         try {
             if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
                 long l = readLong();
@@ -346,23 +343,23 @@ public abstract class GenericLoader implements Loader {
         return o;
     }
 
-    protected Long readLong() throws IOException {
-        return Long.valueOf(in.readLong());
+    private Long readLong() throws IOException {
+        return in.readLong();
 
     }
 
-    protected Integer readInt() throws IOException {
-        return Integer.valueOf(in.readInt());
+    private Integer readInt() throws IOException {
+        return in.readInt();
 
     }
 
-    protected Short readShort() throws IOException {
-        return Short.valueOf((short) in.readUnsignedShort());
+    private Short readShort() throws IOException {
+        return (short) in.readUnsignedShort();
 
     }
 
-    protected Byte readByte() throws IOException {
-        return Byte.valueOf((byte) in.readUnsignedByte());
+    private Byte readByte() throws IOException {
+        return (byte) in.readUnsignedByte();
 
     }
 
