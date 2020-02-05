@@ -20,7 +20,8 @@ import java.util.logging.Logger;
  * @author Eugene Savin
  */
 public class InputStreamLoader extends GenericLoader implements Cloneable {
-    private Logger log = Logger.getLogger(InputStreamLoader.class.getName());
+    //private Logger log = Logger.getLogger(InputStreamLoader.class.getName());
+
 
     public InputStreamLoader(InputStream is, Object instance) {
         this.parent = new Object();
@@ -37,11 +38,14 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
 
     private void readField(Field f) throws FieldReadException {
         Class fieldType = f.getType();
-        Method m;
-        try {
-            m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
-        } catch (NoSuchMethodException e) {
-            throw new FieldReadException("Can not found public setter: " + e.getMessage());
+        Method m = methodsByField.get(f);
+        if (m == null) {
+            try {
+                m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
+                methodsByField.put(f, m);
+            } catch (NoSuchMethodException e) {
+                throw new FieldReadException("Can not found public setter: " + e.getMessage());
+            }
         }
 
         try {
@@ -129,7 +133,7 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                     if (i > 0 || !parent.getClass().equals(Object.class)) { // TODO: it seems additiona checks should be performed
                         // there for some specific cases (when this exception happens on the first field in the subclass after the switch on ClassSwitcher)
                         // do not want to implement it now
-                        log.warning("partial instance created for the last record in the file");
+                        //log.warning("partial instance created for the last record in the file");
                         fre.setPartialCreatedInstance(instance);
                     }
                 }

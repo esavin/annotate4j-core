@@ -15,6 +15,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ public abstract class GenericLoader implements Loader {
     Map<String, Object> injectedVariable;
     boolean isNeedInjection = false;
     ClassSwitcher cs = new ClassSwitcherImpl();
+    protected static final Map<Field,Method> methodsByField = new HashMap<>();
 
 
     boolean readClassInstance(Field f) throws FieldReadException,
@@ -89,7 +91,11 @@ public abstract class GenericLoader implements Loader {
 
         if (result != null) {
             try {
-                Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
+                Method m = methodsByField.get(f);
+                if (m == null){
+                    m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
+                    methodsByField.put(f,m);
+                }
                 m.invoke(instance, result);
                 return true;
             } catch (NoSuchMethodException e) {
@@ -273,7 +279,7 @@ public abstract class GenericLoader implements Loader {
         } catch (IOException e) {
             throw new FieldReadException("Can not read field type " + fieldType.getName(), e);
         }
-        throw new NotSupportedTypeException(fieldType.getName());
+        return null;
     }
 
     protected boolean readList(Field f) throws
