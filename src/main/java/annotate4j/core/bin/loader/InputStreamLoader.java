@@ -49,6 +49,10 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
         }
 
         try {
+            int skipBytes = getSkipBytes(f);
+            if (skipBytes > 0) {
+                in.skipBytes(skipBytes);
+            }
             boolean b = false;
             try {
                 boolean bigEndian = true;

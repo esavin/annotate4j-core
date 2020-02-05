@@ -3,6 +3,7 @@ package annotate4j.core.bin.loader;
 import annotate4j.core.Loader;
 import annotate4j.core.bin.annotation.ContainerSize;
 import annotate4j.core.bin.annotation.LittleEndian;
+import annotate4j.core.bin.annotation.SkipBytes;
 import annotate4j.core.bin.annotation.StringTerminator;
 import annotate4j.core.bin.exceptions.*;
 import annotate4j.core.bin.utils.AnnotationHelper;
@@ -30,8 +31,9 @@ public abstract class GenericLoader implements Loader {
     Map<String, Object> injectedVariable;
     boolean isNeedInjection = false;
     ClassSwitcher cs = new ClassSwitcherImpl();
-    protected static final Map<Field,Method> methodsByField = new HashMap<>();
-
+    protected static final Map<Field, Method> methodsByField = new HashMap<>();
+    protected static final Map<Field, SkipBytesHolder> skipBytesForField = new HashMap<>();
+    private static final SkipBytesHolder noSkip = new SkipBytesHolder();
 
     boolean readClassInstance(Field f) throws FieldReadException,
             IllegalAccessException, InvocationTargetException {
@@ -71,7 +73,7 @@ public abstract class GenericLoader implements Loader {
                 byte b;
                 StringBuilder builder = new StringBuilder();
                 while ((b = readByte()) != terminator) {
-                    builder.append((char)b);
+                    builder.append((char) b);
                 }
                 result = builder.toString();
             }
@@ -92,9 +94,9 @@ public abstract class GenericLoader implements Loader {
         if (result != null) {
             try {
                 Method m = methodsByField.get(f);
-                if (m == null){
+                if (m == null) {
                     m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
-                    methodsByField.put(f,m);
+                    methodsByField.put(f, m);
                 }
                 m.invoke(instance, result);
                 return true;
@@ -246,6 +248,52 @@ public abstract class GenericLoader implements Loader {
         throw new WrongContainerSizeFieldTypeException(f.getName(), o.getClass().getName());
     }
 
+    protected int getSkipBytes(Field f) throws
+            IllegalAccessException, InvocationTargetException {
+
+        SkipBytesHolder sb = skipBytesForField.get(f);
+        if (sb == null) {
+            try {
+                sb = new SkipBytesHolder(AnnotationHelper.getAnnotation(instance.getClass(), f, SkipBytes.class));
+                skipBytesForField.put(f, sb);
+            } catch (AnnotationNotSpecifiedException ee) {
+                skipBytesForField.put(f, noSkip);
+                return 0;
+            }
+        }
+
+        if (sb.getValue() != 0) {
+            if (sb.getValue() == -1 ){
+                return 0;
+            }
+            return sb.getValue();
+        }
+
+        String counterFieldName = sb.getFieldName();
+        if (counterFieldName == null || counterFieldName.length() == 0){
+            return 0;
+        }
+
+        Method getter;
+        try {
+            getter = ReflectionHelper.getGetter(instance.getClass(), counterFieldName);
+        } catch (NoSuchMethodException e) {
+            return 0;
+        }
+
+        Object o = getter.invoke(instance);
+        if (o instanceof Number) {
+            Number n = (Number) o;
+            int l = n.intValue();
+            if (l < 0 && l > -256) {
+                return (byte) l;
+            } else {
+                return n.intValue();
+            }
+        }
+        return 0;
+    }
+
 
     Number readNumber(Class fieldType, boolean bigEndian) throws FieldReadException {
         try {
@@ -394,5 +442,29 @@ public abstract class GenericLoader implements Loader {
 
     protected void setInstance(Object instance) {
         this.instance = instance;
+    }
+
+    private static class SkipBytesHolder {
+
+        private int value;
+        private String fieldName;
+
+        public SkipBytesHolder() {
+            value = -1;
+            fieldName = "";
+        }
+
+        public SkipBytesHolder(SkipBytes sb) {
+            value = sb.value();
+            fieldName = sb.fieldName();
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
     }
 }
