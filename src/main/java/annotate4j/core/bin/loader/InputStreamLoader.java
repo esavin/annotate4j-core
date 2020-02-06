@@ -44,7 +44,7 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
                 methodsByField.put(f, m);
             } catch (NoSuchMethodException e) {
-                throw new FieldReadException("Can not found public setter: " + e.getMessage());
+
             }
         }
 
@@ -61,10 +61,16 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
                 }
                 Number n = readNumber(fieldType, bigEndian);
                 if (n != null) {
-                    m.invoke(instance, n);
-                    b = true;
+                    if (m != null) {
+                        m.invoke(instance, n);
+                        b = true;
+                    } else {
+                        throw new FieldReadException("Can not invoke setter for field " + f.getName() + ": method not found");
+                    }
                 }
             } catch (NotSupportedTypeException e) {//skip it
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new FieldReadException("Can not invoke method " + m.getName(), e);
             }
             if (!b) {
                 b = readContainer(f);
@@ -77,8 +83,6 @@ public class InputStreamLoader extends GenericLoader implements Cloneable {
             }
         } catch (IOException e) {
             throw new FieldReadException("Can not read " + fieldType.getName() + " from DataInput", e);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new FieldReadException("Can not invoke method " + m.getName(), e);
         }
 
 

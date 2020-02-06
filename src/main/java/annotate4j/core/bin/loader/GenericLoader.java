@@ -32,54 +32,76 @@ public abstract class GenericLoader implements Loader {
     boolean isNeedInjection = false;
     ClassSwitcher cs = new ClassSwitcherImpl();
     protected static final Map<Field, Method> methodsByField = new HashMap<>();
-    protected static final Map<Field, SkipBytesHolder> skipBytesForField = new HashMap<>();
-    private static final SkipBytesHolder noSkip = new SkipBytesHolder();
+    protected static final Map<Field, SkipBytes> skipBytesForField = new HashMap<>();
 
-    boolean readClassInstance(Field f) throws FieldReadException,
-            IllegalAccessException, InvocationTargetException {
+    boolean readClassInstance(Field f) throws FieldReadException {
         Object o = readClassInstance(f.getType());
         Method m;
         try {
             m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
             m.invoke(instance, o);
-        } catch (NoSuchMethodException e) {
-            throw new FieldReadException("Can not receive setter for " + instance.getClass().getName() +
-                    " class, field " + f.getName());
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new FieldReadException("Can not call setter for " + instance.getClass().getName() +
+                    " class, field " + f.getName(), e);
         }
         return true;
     }
 
-
-    boolean readContainer(Field f) throws IOException,
-            IllegalAccessException, InvocationTargetException,
-            FieldReadException {
+    boolean readContainer(Field f) throws IOException, FieldReadException {
         if (f.getType().equals(List.class)) {
             return readList(f);
         } else if (f.getType().isArray()) {
             return readArray(f);
         } else if (f.getType().equals(String.class)) {
             return readString(f);
+        } else if (f.getType().equals(Map.class)) {
+            return readMap(f);
         }
         return false;
     }
 
-    private boolean readString(Field f) throws IllegalAccessException, InvocationTargetException,
+    private String readNullTerminatedString() throws FieldReadException {
+        try {
+            byte b;
+            StringBuilder builder = new StringBuilder();
+            while ((b = readByte()) != 0) {
+                builder.append((char) b);
+            }
+            return builder.toString();
+        } catch (IOException e) {
+            throw new FieldReadException("Can not read bytes for null-terminated string", e);
+        }
+    }
+
+    private boolean readString(Field f) throws
             FieldReadException, IOException {
         String result = null;
+
+        StringTerminator t = null;
         try {
-            StringTerminator t = AnnotationHelper.getAnnotation(instance.getClass(), f, StringTerminator.class);
-            if (t != null) {
-                byte terminator = t.value();
-                byte b;
-                StringBuilder builder = new StringBuilder();
-                while ((b = readByte()) != terminator) {
-                    builder.append((char) b);
-                }
-                result = builder.toString();
+            t = AnnotationHelper.getAnnotation(instance.getClass(), f, StringTerminator.class);
+        } catch (AnnotationNotSpecifiedException ee) {
+            ContainerSize cs;
+            try {
+                cs = AnnotationHelper.getAnnotation(instance.getClass(), f, ContainerSize.class);
+            } catch (AnnotationNotSpecifiedException eee) {
             }
-        } catch (AnnotationNotSpecifiedException e) {
-            //skip it
         }
+
+        byte terminator = 0;
+
+        if (t != null) {
+            terminator = t.value();
+        }
+        if (t != null || (t == null && cs == null)) {
+            byte b;
+            StringBuilder builder = new StringBuilder();
+            while ((b = readByte()) != terminator) {
+                builder.append((char) b);
+            }
+            result = builder.toString();
+        }
+
 
         if (result == null) {
             long containerSize = getContainerSize(f);
@@ -100,7 +122,7 @@ public abstract class GenericLoader implements Loader {
                 }
                 m.invoke(instance, result);
                 return true;
-            } catch (NoSuchMethodException e) {
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                 throw new FieldReadException("Can not receive setter for " + instance.getClass().getName() +
                         " class, field " + f.getName());
             }
@@ -110,8 +132,7 @@ public abstract class GenericLoader implements Loader {
 
     }
 
-    private boolean readArray(Field f) throws IllegalAccessException,
-            InvocationTargetException,
+    private boolean readArray(Field f) throws
             FieldReadException, IOException {
 
         long containerSize = getContainerSize(f);
@@ -137,7 +158,7 @@ public abstract class GenericLoader implements Loader {
         try {
             Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), f.getType());
             m.invoke(instance, obj);
-        } catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new FieldReadException("Can not receive setter for " + instance.getClass().getName() +
                     " class, field " + f.getName());
         }
@@ -182,7 +203,7 @@ public abstract class GenericLoader implements Loader {
         return iArray;
     }
 
-    private Object readClassInstance(Class clazz) throws FieldReadException, IllegalAccessException {
+    private Object readClassInstance(Class clazz) throws FieldReadException {
         Object obj;
         try {
             obj = clazz.newInstance();
@@ -193,7 +214,7 @@ public abstract class GenericLoader implements Loader {
                     e.printStackTrace();
                 }
             }
-        } catch (InstantiationException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new FieldReadException("Can not instantiate new instance of " + clazz.getName() + " class", e);
         }
 
@@ -210,7 +231,6 @@ public abstract class GenericLoader implements Loader {
     }
 
     protected long getContainerSize(Field f) throws
-            IllegalAccessException, InvocationTargetException,
             FieldReadException {
 
         ContainerSize cs;
@@ -235,7 +255,13 @@ public abstract class GenericLoader implements Loader {
             throw new WrongContainerSizeFieldException(f.getName(), counterFieldName);
         }
 
-        Object o = getter.invoke(instance);
+        Object o = null;
+        try {
+            o = getter.invoke(instance);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new FieldReadException("Can not invoke getter " + getter.getName() + ", for class " +
+                    instance.getClass().getName(), e);
+        }
         if (o instanceof Number) {
             Number n = (Number) o;
             long l = n.longValue() + corrector;
@@ -248,29 +274,28 @@ public abstract class GenericLoader implements Loader {
         throw new WrongContainerSizeFieldTypeException(f.getName(), o.getClass().getName());
     }
 
-    protected int getSkipBytes(Field f) throws
-            IllegalAccessException, InvocationTargetException {
+    protected int getSkipBytes(Field f) throws FieldReadException {
 
-        SkipBytesHolder sb = skipBytesForField.get(f);
-        if (sb == null) {
+        if (!skipBytesForField.containsKey(f)) {
             try {
-                sb = new SkipBytesHolder(AnnotationHelper.getAnnotation(instance.getClass(), f, SkipBytes.class));
-                skipBytesForField.put(f, sb);
+
+                skipBytesForField.put(f, AnnotationHelper.getAnnotation(instance.getClass(), f, SkipBytes.class));
             } catch (AnnotationNotSpecifiedException ee) {
-                skipBytesForField.put(f, noSkip);
+                skipBytesForField.put(f, null);
                 return 0;
             }
         }
 
-        if (sb.getValue() != 0) {
-            if (sb.getValue() == -1 ){
-                return 0;
-            }
-            return sb.getValue();
+        SkipBytes sb = skipBytesForField.get(f);
+        if (sb == null) {
+            return 0;
+        }
+        if (sb.value() != 0) {
+            return sb.value();
         }
 
-        String counterFieldName = sb.getFieldName();
-        if (counterFieldName == null || counterFieldName.length() == 0){
+        String counterFieldName = sb.fieldName();
+        if (counterFieldName == null || counterFieldName.length() == 0) {
             return 0;
         }
 
@@ -281,7 +306,15 @@ public abstract class GenericLoader implements Loader {
             return 0;
         }
 
-        Object o = getter.invoke(instance);
+        Object o;
+
+        try {
+            o = getter.invoke(instance);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new FieldReadException("Can not invoke getter for field " + f.getName() + ", method "
+                    + getter.getName(), e);
+        }
+
         if (o instanceof Number) {
             Number n = (Number) o;
             int l = n.intValue();
@@ -330,25 +363,88 @@ public abstract class GenericLoader implements Loader {
         return null;
     }
 
-    protected boolean readList(Field f) throws
-            IllegalAccessException, InvocationTargetException,
-            FieldReadException {
+    protected boolean readMap(Field f) throws FieldReadException {
 
+        Type t = f.getGenericType();
+        Class keyClass = ((Class) ((ParameterizedType) t).getActualTypeArguments()[0]);
+        Class valueClass = ((Class) ((ParameterizedType) t).getActualTypeArguments()[1]);
+        long containerSize = getContainerSize(f);
+        Map map = null;
+        boolean newMap = false;
+        try {
+            Method getter = ReflectionHelper.getGetter(instance.getClass(), f.getName());
+            Object obj = getter.invoke(instance);
+            if (obj instanceof Map) {
+                map = (Map) obj;
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new FieldReadException("Can not call getter for " + instance.getClass().getName() +
+                    " class, field " + f.getName());
+        }
+        if (map == null) {
+            map = new HashMap();
+            newMap = true;
+        }
+        long l = 0;
+        Object key = null;
+        Object value = null;
+        try {
+
+            while (l < containerSize) {
+                key = readContainerEntry(keyClass, null);
+                value = readContainerEntry(valueClass, null);
+                map.put(key, value);
+                key = null;
+                value = null;
+                l++;
+            }
+        } catch (FieldReadException fre) {
+            if (fre.getCause() instanceof EOFException && Long.MAX_VALUE == containerSize) {
+                if (fre.getPartialCreatedInstance() != null) {
+                    if (key != null && value != null) {
+                        map.put(key, value);
+                    } else if (key != null) {
+                        map.put(key, fre.getPartialCreatedInstance());
+                    }
+                }
+            } else {
+                throw fre;
+            }
+        }
+
+
+        if (newMap) {
+            try {
+                Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), List.class);
+                m.invoke(instance, map);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                throw new FieldReadException("Can not call setter for " + instance.getClass().getName() +
+                        " class, field " + f.getName());
+            }
+        }
+        return true;
+
+    }
+
+    protected boolean readList(Field f) throws FieldReadException {
         Type t = f.getGenericType();
         Class clazz = ((Class) ((ParameterizedType) t).getActualTypeArguments()[0]);
         long containerSize = getContainerSize(f);
         List list = null;
+        boolean newList = false;
         try {
             Method getter = ReflectionHelper.getGetter(instance.getClass(), f.getName());
             Object obj = getter.invoke(instance);
             if (obj instanceof List) {
                 list = (List) obj;
             }
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new FieldReadException("Can not call getter for " + instance.getClass().getName() +
+                    " class, field " + f.getName(), e);
         }
         if (list == null) {
             list = new ArrayList();
+            newList = true;
         }
         long l = 0;
         try {
@@ -368,29 +464,33 @@ public abstract class GenericLoader implements Loader {
         }
 
 
-        try {
-            Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), List.class);
-            m.invoke(instance, list);
-        } catch (NoSuchMethodException e) {
-            throw new FieldReadException("Can not receive setter for " + instance.getClass().getName() +
-                    " class, field " + f.getName());
+        if (newList) {
+            try {
+                Method m = ReflectionHelper.getSetter(instance.getClass(), f.getName(), List.class);
+                m.invoke(instance, list);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                throw new FieldReadException("Can not call setter for " + instance.getClass().getName() +
+                        " class, field " + f.getName(), e);
+            }
         }
         return true;
 
     }
 
-    protected Object readContainerEntry(Class clazz, Field f) throws FieldReadException, IllegalAccessException {
+    protected Object readContainerEntry(Class clazz, Field f) throws FieldReadException {
         Object o;
         if (clazz.equals(int.class) || clazz.equals(Integer.class) ||
                 clazz.equals(short.class) || clazz.equals(Short.class) ||
                 clazz.equals(byte.class) || clazz.equals(Byte.class) ||
                 clazz.equals(long.class) || clazz.equals(Long.class)) {
             boolean bigEndian = true;
-            if (f.getDeclaredAnnotation(LittleEndian.class) != null) {
+            if (f != null && f.getDeclaredAnnotation(LittleEndian.class) != null) {
                 bigEndian = false;
             }
             o = readNumber(clazz, bigEndian);
 
+        } else if (clazz.equals(String.class)) {
+            o = readNullTerminatedString();
         } else {
             o = readClassInstance(clazz);
         }
@@ -444,27 +544,4 @@ public abstract class GenericLoader implements Loader {
         this.instance = instance;
     }
 
-    private static class SkipBytesHolder {
-
-        private int value;
-        private String fieldName;
-
-        public SkipBytesHolder() {
-            value = -1;
-            fieldName = "";
-        }
-
-        public SkipBytesHolder(SkipBytes sb) {
-            value = sb.value();
-            fieldName = sb.fieldName();
-        }
-
-        public int getValue() {
-            return value;
-        }
-
-        public String getFieldName() {
-            return fieldName;
-        }
-    }
 }
