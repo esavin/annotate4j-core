@@ -63,11 +63,16 @@ public abstract class GenericLoader implements Loader {
     private String readNullTerminatedString() throws FieldReadException {
         try {
             byte b;
-            StringBuilder builder = new StringBuilder();
+            List<Byte> bytes = new ArrayList<>();
             while ((b = readByte()) != 0) {
-                builder.append((char) b);
+                bytes.add(b);
             }
-            return builder.toString();
+            byte[] bArray = new byte[bytes.size()];
+            int i = 0;
+            for (Byte bb: bytes){
+                bArray[i++] = bb;
+            }
+            return new String(bArray);
         } catch (IOException e) {
             throw new FieldReadException("Can not read bytes for null-terminated string", e);
         }
