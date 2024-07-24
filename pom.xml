@@ -5,29 +5,22 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>annotate4j</groupId>
-    <artifactId>core</artifactId>
+    <artifactId>annotate4j-core</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <dependencies>
 
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>5.14.1</version>
+            <version>7.9.0</version>
             <scope>test</scope>
         </dependency>
         

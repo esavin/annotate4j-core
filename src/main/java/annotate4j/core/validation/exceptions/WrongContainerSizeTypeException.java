@@ -5,14 +5,14 @@ import java.lang.reflect.Field;
 /**
  * @author Eugene Savin
  */
-public class WrongContainerSizeFieldTypeException extends ValidationException {
+public class WrongContainerSizeTypeException extends ValidationException {
 
     private Class clazz;
     private Field field;
     private String containerSizeFieldName;
     private String containerSizeFieldType;
 
-    public WrongContainerSizeFieldTypeException(Class clazz, Field field, String containerSizeFieldName, String containerSizeFieldType) {
+    public WrongContainerSizeTypeException(Class clazz, Field field, String containerSizeFieldName, String containerSizeFieldType) {
         this.clazz = clazz;
         this.containerSizeFieldName = containerSizeFieldName;
         this.containerSizeFieldType = containerSizeFieldType;

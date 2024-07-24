@@ -31,7 +31,7 @@ public class MissingContainerSizeFieldException extends ValidationException {
 
     @Override
     public String getMessage() {
-        return "Missing field " + containerSizeFieldName + " declared as container size field for " + field.getName() +
+        return "Missing field or getter for " + containerSizeFieldName + " declared as container size field for " + field.getName() +
                 " container in class " + clazz.getName();
     }
 }

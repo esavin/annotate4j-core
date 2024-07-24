@@ -21,7 +21,7 @@ public class MissingFieldOrderAnnotation {
     private List<MissingFieldOrderAnnotation> list;
 
 
-    public int getField1() {
+    public int getField1_wrongGetterName() {
         return field1;
     }
 

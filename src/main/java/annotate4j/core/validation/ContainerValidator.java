@@ -4,9 +4,11 @@ import annotate4j.core.bin.annotation.ContainerSize;
 import annotate4j.core.bin.annotation.FieldOrder;
 import annotate4j.core.bin.utils.AnnotationHelper;
 import annotate4j.core.bin.utils.FieldsBuilder;
+import annotate4j.core.bin.utils.ReflectionHelper;
 import annotate4j.core.validation.exceptions.*;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Set;
 
 /**
@@ -24,7 +26,7 @@ public class ContainerValidator extends FieldValidator {
         if (cs == null) {
             return;
         }
-        if (cs.value() > 0 && cs.fieldName().length() != 0) {
+        if (cs.value() > 0 && !cs.fieldName().isEmpty()) {
             throw new AmbiguousContainerSizeValueException(clazz, field, cs);
         }
         if (cs.value() > 0) {
@@ -42,21 +44,32 @@ public class ContainerValidator extends FieldValidator {
                 break;
             }
         }
-        if (!hasField) {
-            throw new MissingContainerSizeFieldException(clazz, field, fieldName);
+        if (hasField) {
+            Class type = ff.getType();
+            checkForNumberType(clazz, type, fieldName);
+            FieldOrder csAnnotation = ff.getAnnotation(FieldOrder.class);
+            FieldOrder containerAnnotation = field.getAnnotation(FieldOrder.class);
+            if (csAnnotation.index() > containerAnnotation.index()) {
+                throw new CounterFieldNotInitializedException(clazz, field, ff);
+            }
+        } else {
+            Method m;
+            try {
+                m = ReflectionHelper.getGetter(clazz, cs.fieldName());
+            } catch (NoSuchMethodException e) {
+                throw new MissingContainerSizeFieldException(clazz, field, cs.fieldName());
+            }
+            checkForNumberType(clazz, m.getReturnType(), cs.fieldName());
         }
-        Class type = ff.getType();
+
+
+    }
+
+    private void checkForNumberType(Class clazz, Class type, String fieldName) throws WrongContainerSizeTypeException {
         if (!(Number.class.isAssignableFrom(type) || type.equals(int.class) ||
                 type.equals(long.class) || type.equals(byte.class)
                 || type.equals(short.class))) {
-            throw new WrongContainerSizeFieldTypeException(clazz, field, fieldName, type.getName());
+            throw new WrongContainerSizeTypeException(clazz, field, fieldName, type.getName());
         }
-        FieldOrder csAnnotation = ff.getAnnotation(FieldOrder.class);
-        FieldOrder containerAnnotation = field.getAnnotation(FieldOrder.class);
-        if (csAnnotation.index() > containerAnnotation.index()) {
-            throw new CounterFieldNotInitializedException(clazz, field, ff);
-        }
-
-
     }
 }
